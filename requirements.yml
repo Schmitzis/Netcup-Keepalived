@@ -1,9 +1,9 @@
 ---
 # Github
-- src: git@github.com:Schmitzis/ansible_netcup_scripts.git
+- src: https://github.com/Schmitzis/ansible_netcup_scripts.git
   name: netcup_scripts
   scm: git
-- src: git@github.com:Schmitzis/ansible-keepalived.git
+- src: https://github.com/Schmitzis/ansible-keepalived.git
   name: keepalived
   version: feat-check-config
   scm: git
