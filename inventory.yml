@@ -1,0 +1,56 @@
+---
+all:
+  hosts:
+  children:
+    master:
+      hosts:
+        node-1.bastelpappe.de:
+        node-2.bastelpappe.de:
+        node-3.bastelpappe.de:
+  vars:
+    provider: "{{ ansible_system_vendor }}"
+    # SCP Username
+    netcup_login_name: ""
+    # SCP Webservice Passwrd ( should be placed in an ansible vault)
+    netcup_password: ""
+    # Floating IP ( Replace with your own or comment line to skip )
+    netcup_routed_ip: "1.2.3.4"
+    # Floating IPv6 ( Replace with your own or leave empty to skip )
+    netcup_routed_ip6: "2001:0db8:85a3:0000:0000:8a2e:0370::"
+    # keepalived
+    keepalived_install_method: native
+    keepalived_scripts: true
+    keepalived_watcher: true
+    keepalived_options:
+      - name: log-detail
+    keepalived_global_defs_script_user: root
+    keepalived_global_defs_enable_script_security: "true"
+    keepalived_vrrp_scripts:
+      chk_sshd:
+        script: "/usr/bin/killall -0 sshd"
+        interval: "2"
+        timeout: "3"
+        weight: "4"
+    keepalived_vrrp_instances:
+      Netcup:
+        # Interface used for Keepalived communication
+        interface: eth1
+        # Node with highest priority will switch to 'MASTER'
+        state: "BACKUP"
+        # 1st Node of inventory should get IP, not the one with highest eth1 IP
+        priority: "{{ 50 - groups['master'].index(inventory_hostname)}}"
+        virtual_router_id: 51
+        advert_int: 5
+        preempt_delay: 300
+        authentication:
+          auth_type: PASS
+          auth_pass: '87654321'
+        virtual_ipaddresses: "[ '{{ netcup_routed_ip }}/32 dev eth0 label eth0:vip' ]"
+        virtual_ipaddresses_excluded: "{% if netcup_routed_ip6 is defined and netcup_routed_ip6|length %}['{{ netcup_routed_ip6 }}1/64 dev eth0']{% else %}{% endif %}"
+        notify: '/etc/keepalived/keepalived_notifications.sh'
+        notify_master: '/etc/keepalived/keepalived_master.sh'
+        notify_fault: "{% if (groups['all'].index(inventory_hostname) == 0) %}/etc/keepalived/keepalived_master.sh{% endif %}"
+        vmac_xmit_base: true
+        unicast_src_ip: "{{ ansible_eth1.ipv4.address }}"
+        unicast_peer: "{{ groups['master'] | difference([inventory_hostname]) | map('extract', hostvars, ['ansible_eth1', 'ipv4', 'address']) }}"
+        track_scripts: [ 'chk_sshd' ]

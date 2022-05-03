@@ -1,0 +1,13 @@
+---
+- hosts: all
+  gather_facts: true
+  become: yes
+  vars:
+    ansible_user: "{{ ssh_remote_user | default('root') }}"
+
+  roles:
+  # Netcup SOAP + keepalived scripts
+  - { role: netcup_scripts, tags: [ 'netcup' ], when: "ansible_system_vendor == 'netcup'" }
+
+  # keepalived
+  - { role: keepalived, tags: [ 'keepalived' ] }
